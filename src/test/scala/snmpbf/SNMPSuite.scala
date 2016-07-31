@@ -1,4 +1,4 @@
-package pcapbrute
+package snmpbf
 
 import org.scalatest.FunSuite
 

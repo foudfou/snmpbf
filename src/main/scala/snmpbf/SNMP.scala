@@ -1,4 +1,4 @@
-package pcapbrute
+package snmpbf
 /* Brute-forcing SNMP pcap —
  https://www.0x0ff.info/2013/snmpv3-authentification/
 */
