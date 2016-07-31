@@ -4,6 +4,8 @@ package pcapbrute
 */
 
 import java.security._
+import java.nio.charset.CodingErrorAction
+import scala.io.{Codec, Source}
 
 
 object ByteUtils {
@@ -79,14 +81,39 @@ object SNMP {
     val m2 = new MD5(k2 ++ m1.bytes)
     m2.bytes take 12
   }
+}
 
-  def main(args: Array[String]) {
-    // val bis = new BufferedInputStream(new FileInputStream(fileName))
+object Brute extends App {
+  import SNMP._
+  import ByteUtils._
 
-    // val chunkSize = 128 * 1024
-    // val iterator = Source.fromFile(path).getLines.grouped(chunkSize)
-    // iterator.foreach { lines =>
-    //   lines.par.foreach { line => process(line) }
-    // }
+  val Usage = StringContext.treatEscapes("""usage: pcapbrute WHOLE ENGINE_ID AUTH_PARAM PASSWORD_DICT
+    |
+    |\tWHOLE ENGINE_ID AUTH_PARAM are hex strings.""".stripMargin)
+
+  if (args.length == 0 || args(0) == "-h" || args(0) == "--help") {
+    println(Usage)
+    System.exit(0)
   }
+
+  // input as hex strings
+  val Whole = args(0)
+  val EngineID = args(1)
+  val Param = args(2)
+  val paramIdx = Whole indexOf Param
+
+  implicit val codec = Codec("UTF-8")
+  codec.onMalformedInput(CodingErrorAction.REPLACE)
+  codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
+  // Can't .par directly an Iterator[String], so convert to a Vector.par, not a
+  // List.par which would double memory usage.
+  // http://stackoverflow.com/a/13843530/421846
+  Source.fromFile(args(3))
+    .getLines.toIndexedSeq.par.map { password =>
+      val param = msgAuthenticationParameters(password, EngineID, Whole, paramIdx)
+      if (Param == bytesToHex(param))
+        println(s"MATCH: $password")
+  }
+
 }
