@@ -37,12 +37,13 @@ object ByteUtils {
 }
 
 
-class MD5(input: Array[Byte]) {
-  def this(input: String) = this(input.getBytes("UTF-8"))
+case class MD5(input: Stream[Byte]) {
+  def this(input: Array[Byte]) = this(input.toStream)
+  def this(input: String) = this(input.getBytes("UTF-8").toStream)
 
   val md5 = java.security.MessageDigest.getInstance("MD5")
   val bytes = {
-    md5.update(input, 0, input.length)
+    input.foreach(md5.update(_))
     md5.digest()
   }
 
@@ -55,11 +56,11 @@ class MD5(input: Array[Byte]) {
 object SNMP {
   import ByteUtils._
 
-  // See rfc2574 A.2.2.
+  // See RFC2574 A.2.2.
   def passwordToKeyMd5(password: String, engineID: String): MD5 = {
     val OneMega = 1048576
-    val pwdStream = { password * (OneMega / password.length) +
-      password.take(OneMega % password.length) }
+    val pwdStream = Stream.continually(password).flatten.map(_.toByte)
+      .take(OneMega)
     val md5pwd = new MD5(pwdStream)
     val localized = md5pwd.bytes ++ hexToBytes(engineID) ++ md5pwd.bytes
     new MD5(localized)
