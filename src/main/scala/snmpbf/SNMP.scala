@@ -37,13 +37,12 @@ object ByteUtils {
 }
 
 
-case class MD5(input: Stream[Byte]) {
-  def this(input: Array[Byte]) = this(input.toStream)
-  def this(input: String) = this(input.getBytes("UTF-8").toStream)
+class MD5(input: Array[Byte]) {
+  def this(input: String) = this(input.getBytes("UTF-8"))
 
   val md5 = java.security.MessageDigest.getInstance("MD5")
   val bytes = {
-    input.foreach(md5.update(_))
+    md5.update(input, 0, input.length)
     md5.digest()
   }
 
@@ -59,8 +58,10 @@ object SNMP {
   // See RFC2574 A.2.2.
   def passwordToKeyMd5(password: String, engineID: String): MD5 = {
     val OneMega = 1048576
-    val pwdStream = Stream.continually(password).flatten.map(_.toByte)
-      .take(OneMega)
+    val pwdStream = if (password.length > 0) {
+      password * (OneMega / password.length) +
+      password.take(OneMega % password.length)
+    } else ""
     val md5pwd = new MD5(pwdStream)
     val localized = md5pwd.bytes ++ hexToBytes(engineID) ++ md5pwd.bytes
     new MD5(localized)
@@ -111,10 +112,11 @@ object Brute extends App {
   // List.par which would double memory usage.
   // http://stackoverflow.com/a/13843530/421846
   Source.fromFile(args(3))
-    .getLines.toIndexedSeq.par.map { password =>
-      val param = msgAuthenticationParameters(password, EngineID, Whole, paramIdx)
-      if (Param == bytesToHex(param))
-        println(s"MATCH: $password")
+    .getLines.toIndexedSeq.par.find {
+    (hexToBytes(Param) == msgAuthenticationParameters(_, EngineID, Whole, paramIdx))
+  } match {
+    case None => println("Not found")
+    case Some(pw) => println(s"PASSWORD FOUND: $pw")
   }
 
 }

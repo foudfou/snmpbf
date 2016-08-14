@@ -63,6 +63,11 @@ class SNMPSuite extends FunSuite {
 
     val fromBytes = new MD5(Array[Byte](115, 101, 99, 114, 51, 116))
     assert(fromBytes.bytes.sameElements(expectRaw))
+
+    val empty = new MD5("")
+    val emptyMd5 = Array[Byte](-44, 29, -116, -39, -113, 0, -78, 4, -23, -128,
+      9, -104, -20, -8, 66, 126)
+    assert(empty.bytes.sameElements(emptyMd5))
   }
 
   test("passwordToKeyMd5") {

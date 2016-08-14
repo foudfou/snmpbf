@@ -3,6 +3,7 @@ lazy val root = (project in file(".")).
     name := "snmpbf",
     version := "0.1",
     scalaVersion := "2.11.8",
+    cancelable in Global := true,
 
     scalacOptions ++= Seq("-deprecation", "-feature"),
 
